@@ -7,6 +7,7 @@ OBJDIR   = obj
 INCDIR   = include
 COMDIR   = ../common
 
+
 # CPU
 CPU      = cortex-m4
 
@@ -24,10 +25,17 @@ INCLUDE  = -I$(INCDIR) -I$(COMDIR)/include -I$(COMDIR)/cmsis
 # Linker script
 LSCRIPT  = linker.ld
 
-# Flags
-CFLAGS   = -mcpu=$(CPU) -mthumb -std=c99 -Wall -O0 -g3 -DSTM32F411xE $(INCLUDE)
-ASFLAGS  = -mcpu=$(CPU)
-LDFLAGS  = -T$(LSCRIPT) -nostdlib -Wl,--gc-sections
+# Flags -g3 -fno-unwind-tables -fno-asynchronous-unwind-tables
+CFLAGS   = -mcpu=$(CPU) -mthumb -std=c99 -Wall -O0 -DSTM32F411xE -DUSE_HAL_DRIVER $(INCLUDE) \
+           -ffunction-sections -fdata-sections -fstack-usage -fno-exceptions \
+		   -MMD -MP --static -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb 
+
+# -fcyclomatic-complexity -MMD -MP -MF"$(@:%.o=%.d)" -MT"$@" --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -o "$@"
+
+
+
+ASFLAGS  = -mcpu=$(CPU)   # keep it minimal, no -lgcc -lnosys  -nostartfiles
+LDFLAGS  = -T$(LSCRIPT) -Wl,--gc-sections -lc --specs=nosys.specs --specs=nano.specs
 
 # Tools
 CC       = arm-none-eabi-gcc

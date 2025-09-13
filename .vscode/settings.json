@@ -1,0 +1,7 @@
+{
+    "files.associations": {
+        "stdint.h": "c",
+        "usb_descriptors.h": "c",
+        "usbd_cdc_if.h": "c"
+    }
+}
