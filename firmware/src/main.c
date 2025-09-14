@@ -6,6 +6,10 @@
 
 void SystemClock_Config(void);
 
+void delay(volatile uint32_t s) {
+    for (; s > 0; s--);
+}
+
 int main(void){
   HAL_Init();
   SystemClock_Config(); 
@@ -17,7 +21,7 @@ int main(void){
   while (1){
     int len = snprintf(msg, sizeof(msg), "Counter = %lu\r\n", counter++);
     CDC_Transmit_FS((uint8_t*)msg, len);
-    HAL_Delay(1000);
+    delay(1000000);
   } 
 }
  
