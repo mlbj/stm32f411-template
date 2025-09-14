@@ -1,17 +1,23 @@
+#include <stdio.h>
+
 #include "main.h"
 #include "usb_device.h"
 #include "usbd_cdc_if.h" 
 
 void SystemClock_Config(void);
+
 int main(void){
   HAL_Init();
   SystemClock_Config(); 
   MX_USB_DEVICE_Init();
-  while (1)
-  {
-      uint8_t msg[] = "Hello from minimal VCOM\r\n";
-      CDC_Transmit_FS(msg, sizeof(msg)-1);
-      HAL_Delay(1000);
+
+  uint32_t counter = 0;
+  char msg[64];
+
+  while (1){
+    int len = snprintf(msg, sizeof(msg), "Counter = %lu\r\n", counter++);
+    CDC_Transmit_FS((uint8_t*)msg, len);
+    HAL_Delay(1000);
   } 
 }
  
@@ -37,6 +43,7 @@ void SystemClock_Config(void){
   RCC_OscInitStruct.PLL.PLLN = 192;
   RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV2;
   RCC_OscInitStruct.PLL.PLLQ = 4;
+
   if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK){
     Error_Handler();
   }
