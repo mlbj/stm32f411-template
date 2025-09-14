@@ -49,7 +49,7 @@ void SystemClock_Config(void){
   RCC_OscInitStruct.PLL.PLLQ = 4;
 
   if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK){
-    Error_Handler();
+    error_handler();
   }
 
   /** Initializes the CPU, AHB and APB buses clocks
@@ -62,7 +62,7 @@ void SystemClock_Config(void){
   RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
 
   if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_0) != HAL_OK){
-    Error_Handler();
+    error_handler();
   }
 }
  
@@ -70,9 +70,7 @@ void SystemClock_Config(void){
   * @brief  This function is executed in case of error occurrence.
   * @retval None
   */
-void Error_Handler(void){
-  /* USER CODE BEGIN Error_Handler_Debug */
-  /* User can add his own implementation to report the HAL error return state */
+void error_handler(void){
   __disable_irq();
   while (1){}
   /* USER CODE END Error_Handler_Debug */

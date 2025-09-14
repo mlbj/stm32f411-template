@@ -3,7 +3,7 @@
 
 #include "stm32f4xx_hal.h"
   
-void Error_Handler(void);
+void error_handler(void);
   
 /* __MAIN_H */
 #endif 
