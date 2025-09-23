@@ -1,6 +1,173 @@
 #include "osc.h"
 #include "stm32f4xx.h"
 
+
+
+volatile uint32_t osc_get_sys_clock_freq(void){
+  uint32_t pllm = 0U;
+  uint32_t pllvco = 0U;
+  uint32_t pllp = 0U;
+  uint32_t sysclockfreq = 0U;
+
+  // Get SYSCLK source  
+  switch (RCC->CFGR & RCC_CFGR_SWS){
+    // HSI used as a system clock source
+    case RCC_CFGR_SWS_HSI:  
+      sysclockfreq = HSI_VALUE;
+      break; 
+
+    // HSE used as system clock  source 
+    case RCC_CFGR_SWS_HSE:  
+      sysclockfreq = HSE_VALUE;
+      break;
+
+    // PLL used as system clock  source 
+    case RCC_CFGR_SWS_PLL:   
+      // PLL_VCO = (HSE_VALUE or HSI_VALUE / PLLM) * PLLN
+      // SYSCLK = PLL_VCO / PLLP 
+      pllm = RCC->PLLCFGR & RCC_PLLCFGR_PLLM;
+      if ((uint32_t)(RCC->PLLCFGR & RCC_PLLCFGR_PLLSRC) != RCC_PLLSOURCE_HSI){
+        // HSE used as PLL clock source 
+        pllvco = (uint32_t)((((uint64_t) HSE_VALUE * ((uint64_t)((RCC->PLLCFGR & RCC_PLLCFGR_PLLN) >> RCC_PLLCFGR_PLLN_Pos))))/ (uint64_t)pllm);
+      }else{
+        // HSI used as PLL clock source 
+        pllvco = (uint32_t)((((uint64_t) HSI_VALUE * ((uint64_t)((RCC->PLLCFGR & RCC_PLLCFGR_PLLN) >> RCC_PLLCFGR_PLLN_Pos))))/ (uint64_t)pllm);
+      }
+      pllp = ((((RCC->PLLCFGR & RCC_PLLCFGR_PLLP) >> RCC_PLLCFGR_PLLP_Pos) + 1U) * 2U);
+
+      sysclockfreq = pllvco/ pllp;
+      break;
+
+    default:
+      sysclockfreq = HSI_VALUE;
+      break;
+  }
+  return sysclockfreq;
+}
+
+void osc_config(void){
+  //Configure the main internal regulator output voltage
+  // __HAL_RCC_PWR_CLK_ENABLE()
+  volatile uint32_t tmpreg = 0x00U; 
+  RCC->APB1ENR |= RCC_APB1ENR_PWREN; 
+
+  // Delay after an RCC peripheral clock enabling 
+  tmpreg = RCC->APB1ENR & RCC_APB1ENR_PWREN; 
+  (void)tmpreg;   
+
+  // __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE1)
+  tmpreg = 0x00U;            
+  PWR->CR = (PWR->CR & ~PWR_CR_VOS) | PWR_REGULATOR_VOLTAGE_SCALE1;
+
+  // Delay after an RCC peripheral clock enabling   
+  tmpreg = PWR->CR & PWR_CR_VOS;             
+  (void)tmpreg;     
+  
+   
+  uint32_t pll_config;
+  uint32_t OscillatorType = RCC_OSCILLATORTYPE_HSI | RCC_OSCILLATORTYPE_HSE;
+  uint32_t HSEState = RCC_HSE_ON;
+  uint32_t HSIState = RCC_HSI_ON;
+  uint32_t HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
+  uint32_t PLLState = RCC_PLL_ON;
+  uint32_t PLLSource = RCC_PLLSOURCE_HSE;
+  uint32_t PLLM = 25;
+  uint32_t PLLN = 192;
+  uint32_t PLLP = RCC_PLLP_DIV2;
+  uint32_t PLLQ = 4;
+ 
+  // Set the new HSE configuration
+  RCC->CR |= RCC_CR_HSEON;
+ 
+  // Wait till HSE is ready 
+  while(__HAL_RCC_GET_FLAG(RCC_FLAG_HSERDY) == RESET){}
+
+  // RCC->CFGR & RCC_CFGR_SWS
+  // Disable the main PLL
+  *(volatile uint32_t *)RCC_CR_PLLON_BB = DISABLE;
+
+  while (__HAL_RCC_GET_FLAG(RCC_FLAG_PLLRDY) != RESET){}
+
+  // Configure the main PLL clock source, multiplication and division factors.
+  RCC->PLLCFGR = (PLLSource | PLLM | (PLLN << RCC_PLLCFGR_PLLN_Pos) | \
+                  (((PLLP >> 1U) - 1U) << RCC_PLLCFGR_PLLP_Pos) | \
+                  (PLLQ << RCC_PLLCFGR_PLLQ_Pos));
+
+  // Enable the main PLL.
+  *(volatile uint32_t*)RCC_CR_PLLON_BB = ENABLE;
+
+  // Wait till PLL is ready 
+  while (__HAL_RCC_GET_FLAG(RCC_FLAG_PLLRDY) == RESET){}
+ 
+  // Initializes the CPU, AHB and APB buses clocks
+  uint32_t ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
+                              |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
+  uint32_t SYSCLKSource = RCC_SYSCLKSOURCE_HSE; // It was _HSI before 
+  uint32_t AHBCLKDivider = RCC_SYSCLK_DIV1;
+  uint32_t APB1CLKDivider = RCC_HCLK_DIV1;
+  uint32_t APB2CLKDivider = RCC_HCLK_DIV1;
+
+  // Not fully necessary, as tested.
+  if (FLASH_LATENCY_0 > (FLASH->ACR & FLASH_ACR_LATENCY)){
+    (*(__IO uint8_t *)ACR_BYTE0_ADDRESS = (uint8_t)(FLASH_LATENCY_0));
+  }
+
+  // HCLK Configuration
+  if ((ClockType & RCC_CLOCKTYPE_HCLK) == RCC_CLOCKTYPE_HCLK){
+    // Set the highest APBx dividers in order to ensure that we do not go through
+    //      a non-spec phase whatever we decrease or increase HCLK
+    if ((ClockType & RCC_CLOCKTYPE_PCLK1) == RCC_CLOCKTYPE_PCLK1){
+       RCC->CFGR = (RCC->CFGR & ~RCC_CFGR_PPRE1) | RCC_HCLK_DIV16;
+    }
+
+    if ((ClockType & RCC_CLOCKTYPE_PCLK2) == RCC_CLOCKTYPE_PCLK2){
+      RCC->CFGR = (RCC->CFGR & ~RCC_CFGR_PPRE2) | (RCC_HCLK_DIV16 << 3);
+    }
+ 
+    RCC->CFGR = (RCC->CFGR & ~RCC_CFGR_HPRE) | AHBCLKDivider;
+  }
+
+  // SYSCLK Configuration
+  if ((ClockType & RCC_CLOCKTYPE_SYSCLK) == RCC_CLOCKTYPE_SYSCLK){
+    // HSE is selected as System Clock Source
+    if (SYSCLKSource == RCC_SYSCLKSOURCE_HSE){
+
+    }else if (SYSCLKSource == RCC_SYSCLKSOURCE_PLLCLK || 
+              SYSCLKSource == RCC_SYSCLKSOURCE_PLLRCLK){ 
+    }else{
+    }
+  }
+
+  RCC->CFGR = (RCC->CFGR & ~RCC_CFGR_SW) | SYSCLKSource;
+  
+  while ((RCC->CFGR & RCC_CFGR_SWS) != (SYSCLKSource << RCC_CFGR_SWS_Pos)){}
+
+  // Decreasing the number of wait states because of lower CPU frequency
+  if (FLASH_LATENCY_0 < FLASH->ACR &  FLASH_ACR_LATENCY){
+    // Program the new number of wait states to the LATENCY bits in the FLASH_ACR register 
+    (*(__IO uint8_t *)ACR_BYTE0_ADDRESS = (uint8_t)(FLASH_LATENCY_0));
+  }
+
+  // PCLK1 Configuration
+  if (ClockType & RCC_CLOCKTYPE_PCLK1 == RCC_CLOCKTYPE_PCLK1){
+    RCC->CFGR = RCC->CFGR & ~RCC_CFGR_PPRE1 | APB1CLKDivider;
+  }
+
+  // PCLK2 Configuration
+  if (ClockType & RCC_CLOCKTYPE_PCLK2 == RCC_CLOCKTYPE_PCLK2){ 
+    RCC->CFGR = RCC->CFGR & RCC_CFGR_PPRE2 | APB2CLKDivider << 3U;
+  }
+
+  // Update the SystemCoreClock global variable
+  SystemCoreClock = osc_get_sys_clock_freq() >> AHBPrescTable[(RCC->CFGR & RCC_CFGR_HPRE) >> RCC_CFGR_HPRE_Pos];
+
+  // Configure the source of time base considering new system clocks settings
+  // Configure the SysTick to have interrupt in 1ms time basis
+  // 1U = 1 KHz 
+  SysTick_Config(SystemCoreClock / (1000U / 1U)); 
+
+}
+
 void osc_request_hse(void){
     // Enable HSE oscillator
     RCC->CR |= RCC_CR_HSEON;
