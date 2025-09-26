@@ -10,8 +10,6 @@ void delay(volatile uint32_t s) {
 }
 
 int main(void){
-  HAL_Init();
-  
   osc_config(); 
 
   MX_USB_DEVICE_Init();

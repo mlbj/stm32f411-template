@@ -46,14 +46,33 @@ volatile uint32_t osc_get_sys_clock_freq(void){
 }
 
 void osc_config(void){
-  //Configure the main internal regulator output voltage
-  // __HAL_RCC_PWR_CLK_ENABLE()
   volatile uint32_t tmpreg = 0x00U; 
+  uint32_t PLLSource = RCC_PLLSOURCE_HSE;
+  uint32_t PLLM = 25;
+  uint32_t PLLN = 192;
+  uint32_t PLLP = RCC_PLLP_DIV2;
+  uint32_t PLLQ = 4;
+
+  uint32_t ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
+                              |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
+  uint32_t SYSCLKSource = RCC_SYSCLKSOURCE_HSE; // It was _HSI before 
+  uint32_t AHBCLKDivider = RCC_SYSCLK_DIV1;
+  uint32_t APB1CLKDivider = RCC_HCLK_DIV1;
+  uint32_t APB2CLKDivider = RCC_HCLK_DIV1;
+
+  // // Configure Flash prefetch, Instruction cache, Data cache
+  // FLASH->ACR |= FLASH_ACR_ICEN;
+  // FLASH->ACR |= FLASH_ACR_DCEN;
+  // FLASH->ACR |= FLASH_ACR_PRFTEN;
+
+  // SysTick_Config(SystemCoreClock / (1000U / 1U)); 
+
+  // Configure the main internal regulator output voltage
   RCC->APB1ENR |= RCC_APB1ENR_PWREN; 
 
   // Delay after an RCC peripheral clock enabling 
   tmpreg = RCC->APB1ENR & RCC_APB1ENR_PWREN; 
-  (void)tmpreg;   
+  // (void)tmpreg;   
 
   // __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE1)
   tmpreg = 0x00U;            
@@ -61,32 +80,21 @@ void osc_config(void){
 
   // Delay after an RCC peripheral clock enabling   
   tmpreg = PWR->CR & PWR_CR_VOS;             
-  (void)tmpreg;     
+  // (void)tmpreg;     
   
-   
-  uint32_t pll_config;
-  uint32_t OscillatorType = RCC_OSCILLATORTYPE_HSI | RCC_OSCILLATORTYPE_HSE;
-  uint32_t HSEState = RCC_HSE_ON;
-  uint32_t HSIState = RCC_HSI_ON;
-  uint32_t HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
-  uint32_t PLLState = RCC_PLL_ON;
-  uint32_t PLLSource = RCC_PLLSOURCE_HSE;
-  uint32_t PLLM = 25;
-  uint32_t PLLN = 192;
-  uint32_t PLLP = RCC_PLLP_DIV2;
-  uint32_t PLLQ = 4;
- 
+
   // Set the new HSE configuration
   RCC->CR |= RCC_CR_HSEON;
  
-  // Wait till HSE is ready 
-  while(__HAL_RCC_GET_FLAG(RCC_FLAG_HSERDY) == RESET){}
+  // Wait till HSE is ready  
+  while((RCC->CR & RCC_CR_HSERDY) == 0){}
 
   // RCC->CFGR & RCC_CFGR_SWS
   // Disable the main PLL
   *(volatile uint32_t *)RCC_CR_PLLON_BB = DISABLE;
 
-  while (__HAL_RCC_GET_FLAG(RCC_FLAG_PLLRDY) != RESET){}
+  // Wait till PLL is NOT? ready  
+  while((RCC->CR & RCC_CR_PLLRDY) != 0){}
 
   // Configure the main PLL clock source, multiplication and division factors.
   RCC->PLLCFGR = (PLLSource | PLLM | (PLLN << RCC_PLLCFGR_PLLN_Pos) | \
@@ -96,16 +104,10 @@ void osc_config(void){
   // Enable the main PLL.
   *(volatile uint32_t*)RCC_CR_PLLON_BB = ENABLE;
 
-  // Wait till PLL is ready 
-  while (__HAL_RCC_GET_FLAG(RCC_FLAG_PLLRDY) == RESET){}
+  // Wait till PLL is ready  
+  while((RCC->CR & RCC_CR_PLLRDY) == 0){}
  
   // Initializes the CPU, AHB and APB buses clocks
-  uint32_t ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
-                              |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
-  uint32_t SYSCLKSource = RCC_SYSCLKSOURCE_HSE; // It was _HSI before 
-  uint32_t AHBCLKDivider = RCC_SYSCLK_DIV1;
-  uint32_t APB1CLKDivider = RCC_HCLK_DIV1;
-  uint32_t APB2CLKDivider = RCC_HCLK_DIV1;
 
   // Not fully necessary, as tested.
   if (FLASH_LATENCY_0 > (FLASH->ACR & FLASH_ACR_LATENCY)){
