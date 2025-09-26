@@ -82,7 +82,6 @@ void osc_config(void){
   tmpreg = PWR->CR & PWR_CR_VOS;             
   // (void)tmpreg;     
   
-
   // Set the new HSE configuration
   RCC->CR |= RCC_CR_HSEON;
  
@@ -115,31 +114,18 @@ void osc_config(void){
   }
 
   // HCLK Configuration
-  if ((ClockType & RCC_CLOCKTYPE_HCLK) == RCC_CLOCKTYPE_HCLK){
-    // Set the highest APBx dividers in order to ensure that we do not go through
-    //      a non-spec phase whatever we decrease or increase HCLK
-    if ((ClockType & RCC_CLOCKTYPE_PCLK1) == RCC_CLOCKTYPE_PCLK1){
-       RCC->CFGR = (RCC->CFGR & ~RCC_CFGR_PPRE1) | RCC_HCLK_DIV16;
-    }
-
-    if ((ClockType & RCC_CLOCKTYPE_PCLK2) == RCC_CLOCKTYPE_PCLK2){
-      RCC->CFGR = (RCC->CFGR & ~RCC_CFGR_PPRE2) | (RCC_HCLK_DIV16 << 3);
-    }
+  // As the clock type is HCLK
+  // Set the highest APBx dividers in order to ensure that we do not go through
+  //      a non-spec phase whatever we decrease or increase HCLK
+  // As the clock type is PCLK1 
+  RCC->CFGR = (RCC->CFGR & ~RCC_CFGR_PPRE1) | RCC_HCLK_DIV16;
  
-    RCC->CFGR = (RCC->CFGR & ~RCC_CFGR_HPRE) | AHBCLKDivider;
-  }
-
-  // SYSCLK Configuration
-  if ((ClockType & RCC_CLOCKTYPE_SYSCLK) == RCC_CLOCKTYPE_SYSCLK){
-    // HSE is selected as System Clock Source
-    if (SYSCLKSource == RCC_SYSCLKSOURCE_HSE){
-
-    }else if (SYSCLKSource == RCC_SYSCLKSOURCE_PLLCLK || 
-              SYSCLKSource == RCC_SYSCLKSOURCE_PLLRCLK){ 
-    }else{
-    }
-  }
-
+  // As the clock type is PCLK2
+  // Since clock type 
+  RCC->CFGR = (RCC->CFGR & ~RCC_CFGR_PPRE2) | (RCC_HCLK_DIV16 << 3); 
+ 
+  RCC->CFGR = (RCC->CFGR & ~RCC_CFGR_HPRE) | AHBCLKDivider;
+  
   RCC->CFGR = (RCC->CFGR & ~RCC_CFGR_SW) | SYSCLKSource;
   
   while ((RCC->CFGR & RCC_CFGR_SWS) != (SYSCLKSource << RCC_CFGR_SWS_Pos)){}
@@ -151,14 +137,10 @@ void osc_config(void){
   }
 
   // PCLK1 Configuration
-  if (ClockType & RCC_CLOCKTYPE_PCLK1 == RCC_CLOCKTYPE_PCLK1){
-    RCC->CFGR = RCC->CFGR & ~RCC_CFGR_PPRE1 | APB1CLKDivider;
-  }
+  RCC->CFGR = RCC->CFGR & ~RCC_CFGR_PPRE1 | APB1CLKDivider; 
 
-  // PCLK2 Configuration
-  if (ClockType & RCC_CLOCKTYPE_PCLK2 == RCC_CLOCKTYPE_PCLK2){ 
-    RCC->CFGR = RCC->CFGR & RCC_CFGR_PPRE2 | APB2CLKDivider << 3U;
-  }
+  // PCLK2 Configuration 
+  RCC->CFGR = RCC->CFGR & RCC_CFGR_PPRE2 | APB2CLKDivider << 3U; 
 
   // Update the SystemCoreClock global variable
   SystemCoreClock = osc_get_sys_clock_freq() >> AHBPrescTable[(RCC->CFGR & RCC_CFGR_HPRE) >> RCC_CFGR_HPRE_Pos];
