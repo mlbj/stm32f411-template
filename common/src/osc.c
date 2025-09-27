@@ -46,16 +46,11 @@ volatile uint32_t osc_get_sys_clock_freq(void){
 }
 
 void osc_config(void){
-  volatile uint32_t tmpreg = 0x00U; 
+  volatile uint32_t tmp = 0x00U; 
   uint32_t PLLM = 25;
   uint32_t PLLN = 192;
-  uint32_t PLLP = RCC_PLLP_DIV2;
+  uint32_t PLLP = 2; // RCC_PLLP_DIV2;
   uint32_t PLLQ = 4;
- 
-  uint32_t SYSCLKSource = RCC_SYSCLKSOURCE_HSE; // It was _HSI before 
-  uint32_t AHBCLKDivider = RCC_SYSCLK_DIV1;
-  uint32_t APB1CLKDivider = RCC_HCLK_DIV1;
-  uint32_t APB2CLKDivider = RCC_HCLK_DIV1;
 
   // Configure Flash prefetch, Instruction cache, Data cache.
   // Does not seem to be necessary
@@ -69,15 +64,14 @@ void osc_config(void){
   RCC->APB1ENR |= RCC_APB1ENR_PWREN; 
 
   // Delay after an RCC peripheral clock enabling 
-  tmpreg = RCC->APB1ENR & RCC_APB1ENR_PWREN; 
-  // (void)tmpreg;   
+  tmp = RCC->APB1ENR & RCC_APB1ENR_PWREN;  
 
   // __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE1)
-  tmpreg = 0x00U;            
+  tmp = 0x00U;            
   PWR->CR = (PWR->CR & ~PWR_CR_VOS) | PWR_REGULATOR_VOLTAGE_SCALE1;
 
   // Delay after an RCC peripheral clock enabling   
-  tmpreg = PWR->CR & PWR_CR_VOS;             
+  tmp = PWR->CR & PWR_CR_VOS;             
   // (void)tmpreg;     
   
   // Set the new HSE configuration
@@ -124,10 +118,10 @@ void osc_config(void){
   // Since clock type 
   RCC->CFGR = (RCC->CFGR & ~RCC_CFGR_PPRE2) | (RCC_HCLK_DIV16 << 3); 
  
-  RCC->CFGR = (RCC->CFGR & ~RCC_CFGR_HPRE) | AHBCLKDivider;
-  RCC->CFGR = (RCC->CFGR & ~RCC_CFGR_SW) | SYSCLKSource;
+  RCC->CFGR = (RCC->CFGR & ~RCC_CFGR_HPRE) | RCC_SYSCLK_DIV1;
+  RCC->CFGR = (RCC->CFGR & ~RCC_CFGR_SW) | RCC_SYSCLKSOURCE_HSE;
   
-  while ((RCC->CFGR & RCC_CFGR_SWS) != (SYSCLKSource << RCC_CFGR_SWS_Pos)){}
+  while ((RCC->CFGR & RCC_CFGR_SWS) != (RCC_SYSCLKSOURCE_HSE << RCC_CFGR_SWS_Pos)){}
 
   // Decreasing the number of wait states because of lower CPU frequency
   if (FLASH_LATENCY_0 < FLASH->ACR &  FLASH_ACR_LATENCY){
@@ -136,10 +130,10 @@ void osc_config(void){
   }
 
   // PCLK1 Configuration
-  RCC->CFGR = RCC->CFGR & ~RCC_CFGR_PPRE1 | APB1CLKDivider; 
+  RCC->CFGR = RCC->CFGR & ~RCC_CFGR_PPRE1 | RCC_HCLK_DIV1; 
 
   // PCLK2 Configuration 
-  RCC->CFGR = RCC->CFGR & RCC_CFGR_PPRE2 | APB2CLKDivider << 3U; 
+  RCC->CFGR = RCC->CFGR & RCC_CFGR_PPRE2 | RCC_HCLK_DIV1 << 3U; 
 
   // Update the SystemCoreClock global variable
   SystemCoreClock = osc_get_sys_clock_freq() >> AHBPrescTable[(RCC->CFGR & RCC_CFGR_HPRE) >> RCC_CFGR_HPRE_Pos];
