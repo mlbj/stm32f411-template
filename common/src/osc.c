@@ -47,23 +47,21 @@ volatile uint32_t osc_get_sys_clock_freq(void){
 
 void osc_config(void){
   volatile uint32_t tmpreg = 0x00U; 
-  uint32_t PLLSource = RCC_PLLSOURCE_HSE;
   uint32_t PLLM = 25;
   uint32_t PLLN = 192;
   uint32_t PLLP = RCC_PLLP_DIV2;
   uint32_t PLLQ = 4;
-
-  uint32_t ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
-                              |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
+ 
   uint32_t SYSCLKSource = RCC_SYSCLKSOURCE_HSE; // It was _HSI before 
   uint32_t AHBCLKDivider = RCC_SYSCLK_DIV1;
   uint32_t APB1CLKDivider = RCC_HCLK_DIV1;
   uint32_t APB2CLKDivider = RCC_HCLK_DIV1;
 
-  // // Configure Flash prefetch, Instruction cache, Data cache
-  // FLASH->ACR |= FLASH_ACR_ICEN;
-  // FLASH->ACR |= FLASH_ACR_DCEN;
-  // FLASH->ACR |= FLASH_ACR_PRFTEN;
+  // Configure Flash prefetch, Instruction cache, Data cache.
+  // Does not seem to be necessary
+  FLASH->ACR |= FLASH_ACR_ICEN;
+  FLASH->ACR |= FLASH_ACR_DCEN;
+  FLASH->ACR |= FLASH_ACR_PRFTEN;
 
   // SysTick_Config(SystemCoreClock / (1000U / 1U)); 
 
@@ -96,9 +94,11 @@ void osc_config(void){
   while((RCC->CR & RCC_CR_PLLRDY) != 0){}
 
   // Configure the main PLL clock source, multiplication and division factors.
-  RCC->PLLCFGR = (PLLSource | PLLM | (PLLN << RCC_PLLCFGR_PLLN_Pos) | \
-                  (((PLLP >> 1U) - 1U) << RCC_PLLCFGR_PLLP_Pos) | \
-                  (PLLQ << RCC_PLLCFGR_PLLQ_Pos));
+  RCC->PLLCFGR = RCC_PLLSOURCE_HSE | \
+                 PLLM | \
+                 (PLLN << RCC_PLLCFGR_PLLN_Pos) | \
+                 (((PLLP >> 1U) - 1U) << RCC_PLLCFGR_PLLP_Pos) | \
+                 (PLLQ << RCC_PLLCFGR_PLLQ_Pos);
 
   // Enable the main PLL.
   *(volatile uint32_t*)RCC_CR_PLLON_BB = ENABLE;
@@ -108,9 +108,9 @@ void osc_config(void){
  
   // Initializes the CPU, AHB and APB buses clocks
 
-  // Not fully necessary, as tested.
+  // Does not seem to be necessary
   if (FLASH_LATENCY_0 > (FLASH->ACR & FLASH_ACR_LATENCY)){
-    (*(__IO uint8_t *)ACR_BYTE0_ADDRESS = (uint8_t)(FLASH_LATENCY_0));
+    *(__IO uint8_t *)ACR_BYTE0_ADDRESS = (uint8_t)(FLASH_LATENCY_0);
   }
 
   // HCLK Configuration
@@ -125,7 +125,6 @@ void osc_config(void){
   RCC->CFGR = (RCC->CFGR & ~RCC_CFGR_PPRE2) | (RCC_HCLK_DIV16 << 3); 
  
   RCC->CFGR = (RCC->CFGR & ~RCC_CFGR_HPRE) | AHBCLKDivider;
-  
   RCC->CFGR = (RCC->CFGR & ~RCC_CFGR_SW) | SYSCLKSource;
   
   while ((RCC->CFGR & RCC_CFGR_SWS) != (SYSCLKSource << RCC_CFGR_SWS_Pos)){}
