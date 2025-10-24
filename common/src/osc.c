@@ -52,35 +52,28 @@ void osc_config(void){
   uint32_t PLLP = 2; // RCC_PLLP_DIV2;
   uint32_t PLLQ = 4;
 
-  // Configure Flash prefetch, Instruction cache, Data cache.
-  // Does not seem to be necessary
-  FLASH->ACR |= FLASH_ACR_ICEN;
-  FLASH->ACR |= FLASH_ACR_DCEN;
-  FLASH->ACR |= FLASH_ACR_PRFTEN;
-
   // SysTick_Config(SystemCoreClock / (1000U / 1U)); 
 
-  // Configure the main internal regulator output voltage
-  RCC->APB1ENR |= RCC_APB1ENR_PWREN; 
-
+  // 1. Configure the main internal regulator output voltage. 
   // Delay after an RCC peripheral clock enabling 
+  RCC->APB1ENR |= RCC_APB1ENR_PWREN; 
   tmp = RCC->APB1ENR & RCC_APB1ENR_PWREN;  
+  (void)tmp;
 
-  // __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE1)
-  tmp = 0x00U;            
-  PWR->CR = (PWR->CR & ~PWR_CR_VOS) | PWR_REGULATOR_VOLTAGE_SCALE1;
-
+  // 2. (Optional) Set voltage scale to Scale1 for maximum performance    
   // Delay after an RCC peripheral clock enabling   
+  PWR->CR = (PWR->CR & ~PWR_CR_VOS) | PWR_REGULATOR_VOLTAGE_SCALE1;
   tmp = PWR->CR & PWR_CR_VOS;             
-  // (void)tmpreg;     
-  
-  // Set the new HSE configuration
-  RCC->CR |= RCC_CR_HSEON;
- 
-  // Wait till HSE is ready  
-  while((RCC->CR & RCC_CR_HSERDY) == 0){}
+  (void)tmp;     
 
-  // RCC->CFGR & RCC_CFGR_SWS
+  // 3. Configure Flash prefetch, Instruction cache, Data cache. 
+  FLASH->ACR |= FLASH_ACR_ICEN | FLASH_ACR_DCEN | FLASH_ACR_PRFTEN;
+  
+  // 4. Enable HSE and wait until it's ready 
+  RCC->CR |= RCC_CR_HSEON; 
+  while((RCC->CR & RCC_CR_HSERDY) == 0){}
+  
+  // 5. Configure PLL. PLLM=25, PLLN=192, PLLP=2, PLLQ=4, PLLSRC=HSE
   // Disable the main PLL
   *(volatile uint32_t *)RCC_CR_PLLON_BB = DISABLE;
 
@@ -94,18 +87,16 @@ void osc_config(void){
                  (((PLLP >> 1U) - 1U) << RCC_PLLCFGR_PLLP_Pos) | \
                  (PLLQ << RCC_PLLCFGR_PLLQ_Pos);
 
-  // Enable the main PLL.
+  // 6. Enable the main PLL, and wait for it to be ready
   *(volatile uint32_t*)RCC_CR_PLLON_BB = ENABLE;
-
-  // Wait till PLL is ready  
   while((RCC->CR & RCC_CR_PLLRDY) == 0){}
  
   // Initializes the CPU, AHB and APB buses clocks
 
-  // Does not seem to be necessary
-  if (FLASH_LATENCY_0 > (FLASH->ACR & FLASH_ACR_LATENCY)){
-    *(__IO uint8_t *)ACR_BYTE0_ADDRESS = (uint8_t)(FLASH_LATENCY_0);
-  }
+  // // Does not seem to be necessary
+  // if (FLASH_LATENCY_0 > (FLASH->ACR & FLASH_ACR_LATENCY)){
+  //   *(__IO uint8_t *)ACR_BYTE0_ADDRESS = (uint8_t)(FLASH_LATENCY_0);
+  // }
 
   // HCLK Configuration
   // As the clock type is HCLK
