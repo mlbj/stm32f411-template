@@ -282,7 +282,7 @@ typedef enum
   USBD_BUSY,
   USBD_EMEM,
   USBD_FAIL,
-} USBD_StatusTypeDef;
+} usbd_status_t; //usbd_status_t;
 
 /* USB Device descriptors structure */
 typedef struct

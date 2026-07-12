@@ -12,7 +12,7 @@ void delay(volatile uint32_t s) {
 int main(void){
   osc_config(); 
 
-  MX_USB_DEVICE_Init();
+  usb_device_init();
 
   uint32_t counter = 0;
   char msg[64];

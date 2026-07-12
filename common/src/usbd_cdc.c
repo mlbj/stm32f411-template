@@ -436,7 +436,7 @@ static uint8_t USBD_CDC_Setup(USBD_HandleTypeDef *pdev,
   uint16_t len;
   uint8_t ifalt = 0U;
   uint16_t status_info = 0U;
-  USBD_StatusTypeDef ret = USBD_OK;
+  usbd_status_t ret = USBD_OK;
 
   if (hcdc == NULL)
   {
@@ -628,9 +628,9 @@ static uint8_t USBD_CDC_EP0_RxReady(USBD_HandleTypeDef *pdev)
   */
 static uint8_t *USBD_CDC_GetFSCfgDesc(uint16_t *length)
 {
-  USBD_EpDescTypeDef *pEpCmdDesc = USBD_GetEpDesc(USBD_CDC_CfgDesc, CDC_CMD_EP);
-  USBD_EpDescTypeDef *pEpOutDesc = USBD_GetEpDesc(USBD_CDC_CfgDesc, CDC_OUT_EP);
-  USBD_EpDescTypeDef *pEpInDesc = USBD_GetEpDesc(USBD_CDC_CfgDesc, CDC_IN_EP);
+  USBD_EpDescTypeDef *pEpCmdDesc = usbd_get_ep_desc(USBD_CDC_CfgDesc, CDC_CMD_EP);
+  USBD_EpDescTypeDef *pEpOutDesc = usbd_get_ep_desc(USBD_CDC_CfgDesc, CDC_OUT_EP);
+  USBD_EpDescTypeDef *pEpInDesc = usbd_get_ep_desc(USBD_CDC_CfgDesc, CDC_IN_EP);
 
   if (pEpCmdDesc != NULL)
   {
@@ -659,9 +659,9 @@ static uint8_t *USBD_CDC_GetFSCfgDesc(uint16_t *length)
   */
 static uint8_t *USBD_CDC_GetHSCfgDesc(uint16_t *length)
 {
-  USBD_EpDescTypeDef *pEpCmdDesc = USBD_GetEpDesc(USBD_CDC_CfgDesc, CDC_CMD_EP);
-  USBD_EpDescTypeDef *pEpOutDesc = USBD_GetEpDesc(USBD_CDC_CfgDesc, CDC_OUT_EP);
-  USBD_EpDescTypeDef *pEpInDesc = USBD_GetEpDesc(USBD_CDC_CfgDesc, CDC_IN_EP);
+  USBD_EpDescTypeDef *pEpCmdDesc = usbd_get_ep_desc(USBD_CDC_CfgDesc, CDC_CMD_EP);
+  USBD_EpDescTypeDef *pEpOutDesc = usbd_get_ep_desc(USBD_CDC_CfgDesc, CDC_OUT_EP);
+  USBD_EpDescTypeDef *pEpInDesc = usbd_get_ep_desc(USBD_CDC_CfgDesc, CDC_IN_EP);
 
   if (pEpCmdDesc != NULL)
   {
@@ -690,9 +690,9 @@ static uint8_t *USBD_CDC_GetHSCfgDesc(uint16_t *length)
   */
 static uint8_t *USBD_CDC_GetOtherSpeedCfgDesc(uint16_t *length)
 {
-  USBD_EpDescTypeDef *pEpCmdDesc = USBD_GetEpDesc(USBD_CDC_CfgDesc, CDC_CMD_EP);
-  USBD_EpDescTypeDef *pEpOutDesc = USBD_GetEpDesc(USBD_CDC_CfgDesc, CDC_OUT_EP);
-  USBD_EpDescTypeDef *pEpInDesc = USBD_GetEpDesc(USBD_CDC_CfgDesc, CDC_IN_EP);
+  USBD_EpDescTypeDef *pEpCmdDesc = usbd_get_ep_desc(USBD_CDC_CfgDesc, CDC_CMD_EP);
+  USBD_EpDescTypeDef *pEpOutDesc = usbd_get_ep_desc(USBD_CDC_CfgDesc, CDC_OUT_EP);
+  USBD_EpDescTypeDef *pEpInDesc = usbd_get_ep_desc(USBD_CDC_CfgDesc, CDC_IN_EP);
 
   if (pEpCmdDesc != NULL)
   {
@@ -815,7 +815,7 @@ uint8_t USBD_CDC_TransmitPacket(USBD_HandleTypeDef *pdev)
   USBD_CDC_HandleTypeDef *hcdc = (USBD_CDC_HandleTypeDef *)pdev->pClassDataCmsit[pdev->classId];
 #endif  /* USE_USBD_COMPOSITE */
 
-  USBD_StatusTypeDef ret = USBD_BUSY;
+  usbd_status_t ret = USBD_BUSY;
 
 #ifdef USE_USBD_COMPOSITE
   /* Get the Endpoints addresses allocated for this class instance */

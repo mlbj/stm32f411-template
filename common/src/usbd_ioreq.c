@@ -83,7 +83,7 @@
   * @param  len: length of data to be sent
   * @retval status
   */
-USBD_StatusTypeDef USBD_CtlSendData(USBD_HandleTypeDef *pdev,
+usbd_status_t USBD_CtlSendData(USBD_HandleTypeDef *pdev,
                                     uint8_t *pbuf, uint32_t len)
 {
   /* Set EP0 State */
@@ -111,7 +111,7 @@ USBD_StatusTypeDef USBD_CtlSendData(USBD_HandleTypeDef *pdev,
   * @param  len: length of data to be sent
   * @retval status
   */
-USBD_StatusTypeDef USBD_CtlContinueSendData(USBD_HandleTypeDef *pdev,
+usbd_status_t USBD_CtlContinueSendData(USBD_HandleTypeDef *pdev,
                                             uint8_t *pbuf, uint32_t len)
 {
   /* Start the next transfer */
@@ -128,7 +128,7 @@ USBD_StatusTypeDef USBD_CtlContinueSendData(USBD_HandleTypeDef *pdev,
   * @param  len: length of data to be received
   * @retval status
   */
-USBD_StatusTypeDef USBD_CtlPrepareRx(USBD_HandleTypeDef *pdev,
+usbd_status_t USBD_CtlPrepareRx(USBD_HandleTypeDef *pdev,
                                      uint8_t *pbuf, uint32_t len)
 {
   /* Set EP0 State */
@@ -156,7 +156,7 @@ USBD_StatusTypeDef USBD_CtlPrepareRx(USBD_HandleTypeDef *pdev,
   * @param  len: length of data to be received
   * @retval status
   */
-USBD_StatusTypeDef USBD_CtlContinueRx(USBD_HandleTypeDef *pdev,
+usbd_status_t USBD_CtlContinueRx(USBD_HandleTypeDef *pdev,
                                       uint8_t *pbuf, uint32_t len)
 {
   (void)USBD_LL_PrepareReceive(pdev, 0U, pbuf, len);
@@ -170,7 +170,7 @@ USBD_StatusTypeDef USBD_CtlContinueRx(USBD_HandleTypeDef *pdev,
   * @param  pdev: device instance
   * @retval status
   */
-USBD_StatusTypeDef USBD_CtlSendStatus(USBD_HandleTypeDef *pdev)
+usbd_status_t USBD_CtlSendStatus(USBD_HandleTypeDef *pdev)
 {
   /* Set EP0 State */
   pdev->ep0_state = USBD_EP0_STATUS_IN;
@@ -187,7 +187,7 @@ USBD_StatusTypeDef USBD_CtlSendStatus(USBD_HandleTypeDef *pdev)
   * @param  pdev: device instance
   * @retval status
   */
-USBD_StatusTypeDef USBD_CtlReceiveStatus(USBD_HandleTypeDef *pdev)
+usbd_status_t USBD_CtlReceiveStatus(USBD_HandleTypeDef *pdev)
 {
   /* Set EP0 State */
   pdev->ep0_state = USBD_EP0_STATUS_OUT;

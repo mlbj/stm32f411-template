@@ -77,7 +77,7 @@
   */
 static void USBD_GetDescriptor(USBD_HandleTypeDef *pdev, USBD_SetupReqTypedef *req);
 static void USBD_SetAddress(USBD_HandleTypeDef *pdev, USBD_SetupReqTypedef *req);
-static USBD_StatusTypeDef USBD_SetConfig(USBD_HandleTypeDef *pdev, USBD_SetupReqTypedef *req);
+static usbd_status_t USBD_SetConfig(USBD_HandleTypeDef *pdev, USBD_SetupReqTypedef *req);
 static void USBD_GetConfig(USBD_HandleTypeDef *pdev, USBD_SetupReqTypedef *req);
 static void USBD_GetStatus(USBD_HandleTypeDef *pdev, USBD_SetupReqTypedef *req);
 static void USBD_SetFeature(USBD_HandleTypeDef *pdev, USBD_SetupReqTypedef *req);
@@ -101,15 +101,15 @@ static uint8_t USBD_GetLen(uint8_t *buf);
   * @param  req: usb request
   * @retval status
   */
-USBD_StatusTypeDef USBD_StdDevReq(USBD_HandleTypeDef *pdev, USBD_SetupReqTypedef *req)
+usbd_status_t USBD_StdDevReq(USBD_HandleTypeDef *pdev, USBD_SetupReqTypedef *req)
 {
-  USBD_StatusTypeDef ret = USBD_OK;
+  usbd_status_t ret = USBD_OK;
 
   switch (req->bmRequest & USB_REQ_TYPE_MASK)
   {
     case USB_REQ_TYPE_CLASS:
     case USB_REQ_TYPE_VENDOR:
-      ret = (USBD_StatusTypeDef)pdev->pClass[pdev->classId]->Setup(pdev, req);
+      ret = (usbd_status_t)pdev->pClass[pdev->classId]->Setup(pdev, req);
       break;
 
     case USB_REQ_TYPE_STANDARD:
@@ -164,9 +164,9 @@ USBD_StatusTypeDef USBD_StdDevReq(USBD_HandleTypeDef *pdev, USBD_SetupReqTypedef
   * @param  req: usb request
   * @retval status
   */
-USBD_StatusTypeDef USBD_StdItfReq(USBD_HandleTypeDef *pdev, USBD_SetupReqTypedef *req)
+usbd_status_t USBD_StdItfReq(USBD_HandleTypeDef *pdev, USBD_SetupReqTypedef *req)
 {
-  USBD_StatusTypeDef ret = USBD_OK;
+  usbd_status_t ret = USBD_OK;
   uint8_t idx;
 
   switch (req->bmRequest & USB_REQ_TYPE_MASK)
@@ -183,14 +183,14 @@ USBD_StatusTypeDef USBD_StdItfReq(USBD_HandleTypeDef *pdev, USBD_SetupReqTypedef
           if (LOBYTE(req->wIndex) <= USBD_MAX_NUM_INTERFACES)
           {
             /* Get the class index relative to this interface */
-            idx = USBD_CoreFindIF(pdev, LOBYTE(req->wIndex));
+            idx = usbd_core_find_if(pdev, LOBYTE(req->wIndex));
             if (((uint8_t)idx != 0xFFU) && (idx < USBD_MAX_SUPPORTED_CLASS))
             {
               /* Call the class data out function to manage the request */
               if (pdev->pClass[idx]->Setup != NULL)
               {
                 pdev->classId = idx;
-                ret = (USBD_StatusTypeDef)(pdev->pClass[idx]->Setup(pdev, req));
+                ret = (usbd_status_t)(pdev->pClass[idx]->Setup(pdev, req));
               }
               else
               {
@@ -236,12 +236,12 @@ USBD_StatusTypeDef USBD_StdItfReq(USBD_HandleTypeDef *pdev, USBD_SetupReqTypedef
   * @param  req: usb request
   * @retval status
   */
-USBD_StatusTypeDef USBD_StdEPReq(USBD_HandleTypeDef *pdev, USBD_SetupReqTypedef *req)
+usbd_status_t USBD_StdEPReq(USBD_HandleTypeDef *pdev, USBD_SetupReqTypedef *req)
 {
   USBD_EndpointTypeDef *pep;
   uint8_t ep_addr;
   uint8_t idx;
-  USBD_StatusTypeDef ret = USBD_OK;
+  usbd_status_t ret = USBD_OK;
 
   ep_addr = LOBYTE(req->wIndex);
 
@@ -250,14 +250,14 @@ USBD_StatusTypeDef USBD_StdEPReq(USBD_HandleTypeDef *pdev, USBD_SetupReqTypedef 
     case USB_REQ_TYPE_CLASS:
     case USB_REQ_TYPE_VENDOR:
       /* Get the class index relative to this endpoint */
-      idx = USBD_CoreFindEP(pdev, ep_addr);
+      idx = usbd_core_find_ep(pdev, ep_addr);
       if (((uint8_t)idx != 0xFFU) && (idx < USBD_MAX_SUPPORTED_CLASS))
       {
         pdev->classId = idx;
         /* Call the class data out function to manage the request */
         if (pdev->pClass[idx]->Setup != NULL)
         {
-          ret = (USBD_StatusTypeDef)pdev->pClass[idx]->Setup(pdev, req);
+          ret = (usbd_status_t)pdev->pClass[idx]->Setup(pdev, req);
         }
       }
       break;
@@ -324,14 +324,14 @@ USBD_StatusTypeDef USBD_StdEPReq(USBD_HandleTypeDef *pdev, USBD_SetupReqTypedef 
                 (void)USBD_CtlSendStatus(pdev);
 
                 /* Get the class index relative to this interface */
-                idx = USBD_CoreFindEP(pdev, ep_addr);
+                idx = usbd_core_find_ep(pdev, ep_addr);
                 if (((uint8_t)idx != 0xFFU) && (idx < USBD_MAX_SUPPORTED_CLASS))
                 {
                   pdev->classId = idx;
                   /* Call the class data out function to manage the request */
                   if (pdev->pClass[idx]->Setup != NULL)
                   {
-                    ret = (USBD_StatusTypeDef)(pdev->pClass[idx]->Setup(pdev, req));
+                    ret = (usbd_status_t)(pdev->pClass[idx]->Setup(pdev, req));
                   }
                 }
               }
@@ -720,9 +720,9 @@ static void USBD_SetAddress(USBD_HandleTypeDef *pdev, USBD_SetupReqTypedef *req)
   * @param  req: usb request
   * @retval status
   */
-static USBD_StatusTypeDef USBD_SetConfig(USBD_HandleTypeDef *pdev, USBD_SetupReqTypedef *req)
+static usbd_status_t USBD_SetConfig(USBD_HandleTypeDef *pdev, USBD_SetupReqTypedef *req)
 {
-  USBD_StatusTypeDef ret = USBD_OK;
+  usbd_status_t ret = USBD_OK;
   static uint8_t cfgidx;
 
   cfgidx = (uint8_t)(req->wValue);
@@ -740,7 +740,7 @@ static USBD_StatusTypeDef USBD_SetConfig(USBD_HandleTypeDef *pdev, USBD_SetupReq
       {
         pdev->dev_config = cfgidx;
 
-        ret = USBD_SetClassConfig(pdev, cfgidx);
+        ret = usbd_set_class_config(pdev, cfgidx);
 
         if (ret != USBD_OK)
         {
@@ -771,23 +771,23 @@ static USBD_StatusTypeDef USBD_SetConfig(USBD_HandleTypeDef *pdev, USBD_SetupReq
       {
         pdev->dev_state = USBD_STATE_ADDRESSED;
         pdev->dev_config = cfgidx;
-        (void)USBD_ClrClassConfig(pdev, cfgidx);
+        (void)usbd_clear_class_config(pdev, cfgidx);
         (void)USBD_CtlSendStatus(pdev);
       }
       else if (cfgidx != pdev->dev_config)
       {
         /* Clear old configuration */
-        (void)USBD_ClrClassConfig(pdev, (uint8_t)pdev->dev_config);
+        (void)usbd_clear_class_config(pdev, (uint8_t)pdev->dev_config);
 
         /* set new configuration */
         pdev->dev_config = cfgidx;
 
-        ret = USBD_SetClassConfig(pdev, cfgidx);
+        ret = usbd_set_class_config(pdev, cfgidx);
 
         if (ret != USBD_OK)
         {
           USBD_CtlError(pdev, req);
-          (void)USBD_ClrClassConfig(pdev, (uint8_t)pdev->dev_config);
+          (void)usbd_clear_class_config(pdev, (uint8_t)pdev->dev_config);
           pdev->dev_state = USBD_STATE_ADDRESSED;
         }
         else
@@ -803,7 +803,7 @@ static USBD_StatusTypeDef USBD_SetConfig(USBD_HandleTypeDef *pdev, USBD_SetupReq
 
     default:
       USBD_CtlError(pdev, req);
-      (void)USBD_ClrClassConfig(pdev, cfgidx);
+      (void)usbd_clear_class_config(pdev, cfgidx);
       ret = USBD_FAIL;
       break;
   }
