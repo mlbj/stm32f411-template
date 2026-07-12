@@ -1,0 +1,9 @@
+.vscode
+.vscode/*
+
+firmware/bin/
+firmware/obj/
+
+*.hx
+*.cx
+
