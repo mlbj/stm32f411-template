@@ -5,7 +5,7 @@ Minimal template for STM32F411 development. Includes a basic `Makefile`, startup
 ### Build and Flash (Firmware)
 
 ```bash
-cd firmware
+cd app
 make        # build ELF, HEX, BIN
 make flash  # program via ST-Link
 make clean  # remove build artifacts
@@ -15,7 +15,7 @@ make clean  # remove build artifacts
 
 ```
 stm32f411-template/
-├── firmware/
+├── app/
 │   ├── src/            # source files, e.g. startup assembly
 │   ├── include/        # project-specific headers
 │   ├── Makefile        # build system
