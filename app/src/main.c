@@ -1,27 +1,35 @@
-#include "stm32f4xx.h"
+#include <stdio.h>
 
-void __libc_init_array(void) {}
+#include "main.h"
+#include "usb_device.h"
+#include "usbd_cdc_if.h"
+#include "osc.h"
 
 void delay(volatile uint32_t s) {
     for (; s > 0; s--);
 }
 
 int main(void) {
-    // Enable clock for GPIOC
-    RCC->AHB1ENR |= RCC_AHB1ENR_GPIOCEN;
+    osc_config();
 
-    // Set PC13 as general purpose output
-    GPIOC->MODER &= ~(3UL << (13 * 2));  // clear mode
-    GPIOC->MODER |=  (1UL << (13 * 2));  // set to output
+    usb_device_init();
+
+    uint32_t counter = 0;
+    char msg[64];
 
     while (1) {
-        // Turn LED ON (PC13 low)
-        GPIOC->BSRR = (1UL << (13 + 16)); // reset bit
-        delay(100000);
-
-        // Turn LED OFF (PC13 high)
-        GPIOC->BSRR = (1UL << 13); // set bit
-        delay(100000);
+        int len = snprintf(msg, sizeof(msg), "Counter = %lu\r\n", counter++);
+        CDC_Transmit_FS((uint8_t *)msg, len);
+        delay(1000000);
     }
 }
 
+/**
+  * @brief  This function is executed in case of error occurrence.
+  * @retval None
+  */
+void error_handler(void) {
+    __disable_irq();
+    while (1) {}
+    /* USER CODE END Error_Handler_Debug */
+}
