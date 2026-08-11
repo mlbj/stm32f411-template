@@ -1,6 +1,8 @@
 #include "osc.h"
 #include "stm32f4xx.h"
 
+extern void error_handler(void);
+
 
 volatile uint32_t osc_get_sys_clock_freq(void) {
     uint32_t pllm = 0U;
@@ -68,9 +70,13 @@ void osc_config(void) {
     // 3. Configure Flash prefetch, Instruction cache, Data cache.
     FLASH->ACR |= FLASH_ACR_ICEN | FLASH_ACR_DCEN | FLASH_ACR_PRFTEN;
 
-    // 4. Enable HSE and wait until it's ready
+    // 4. Enable HSE and wait until it's ready, or bail out if it never locks
     RCC->CR |= RCC_CR_HSEON;
-    while ((RCC->CR & RCC_CR_HSERDY) == 0) {}
+    uint32_t hse_timeout = HSE_STARTUP_TIMEOUT;
+    while (((RCC->CR & RCC_CR_HSERDY) == 0) && (--hse_timeout != 0)) {}
+    if (hse_timeout == 0) {
+        error_handler();
+    }
 
     // 5. Configure PLL. PLLM=25, PLLN=192, PLLP=2, PLLQ=4, PLLSRC=HSE
     // Disable the main PLL

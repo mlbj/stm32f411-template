@@ -53,7 +53,7 @@
 
 #define RCC_FLAG_HSERDY ((uint8_t)0x31)
 #define RCC_FLAG_PLLRDY ((uint8_t)0x39)
-#define HSE_STARTUP_TIMEOUT 100U // In ms
+#define HSE_STARTUP_TIMEOUT 1000000U // spin-loop iteration bound; SysTick isn't running yet, so this isn't a calibrated time value
 
 #define RCC_OFFSET (RCC_BASE - PERIPH_BASE)
 /* --- CR Register --- */
