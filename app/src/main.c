@@ -16,10 +16,19 @@ int main(void) {
 
     uint32_t counter = 0;
     char msg[64];
+    uint8_t rx_buf[APP_RX_DATA_SIZE];
+    uint32_t rx_len;
 
     while (1) {
-        int len = snprintf(msg, sizeof(msg), "Counter = %lu\r\n", counter++);
-        CDC_Transmit_FS((uint8_t *)msg, len);
+        // Echo example
+        if (CDC_Read_FS(rx_buf, &rx_len)) {
+            CDC_Transmit_FS(rx_buf, (uint16_t)rx_len);
+        }
+
+        // Counter example
+        //int len = snprintf(msg, sizeof(msg), "Counter = %lu\r\n", counter++);
+        //CDC_Transmit_FS((uint8_t*)msg, len);
+
         delay(1000000);
     }
 }
