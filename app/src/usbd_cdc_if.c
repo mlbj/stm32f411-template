@@ -94,9 +94,24 @@ uint8_t UserRxBufferFS[APP_RX_DATA_SIZE];
 uint8_t UserTxBufferFS[APP_TX_DATA_SIZE];
 
 /* USER CODE BEGIN PRIVATE_VARIABLES */
-static volatile uint8_t RxLineBuf[APP_RX_DATA_SIZE];
-static volatile uint32_t RxLineLen = 0;
-static volatile uint8_t RxLineReady = 0;
+#define CDC_RX_RING_SIZE 512
+
+static volatile uint8_t RxRing[CDC_RX_RING_SIZE];
+static volatile uint32_t RxHead = 0; /* written from USB interrupt context */
+static volatile uint32_t RxTail = 0; /* read from the application's main loop */
+
+/* Pushes received bytes into the ring buffer. If the ring is full, the
+ * oldest unread bytes are dropped to make room for the new ones. */
+static void RxRing_Push(uint8_t *data, uint32_t len) {
+    for (uint32_t i = 0; i < len; i++) {
+        uint32_t next = (RxHead + 1) % CDC_RX_RING_SIZE;
+        if (next == RxTail) {
+            RxTail = (RxTail + 1) % CDC_RX_RING_SIZE;
+        }
+        RxRing[RxHead] = data[i];
+        RxHead = next;
+    }
+}
 /* USER CODE END PRIVATE_VARIABLES */
 
 /**
@@ -258,12 +273,7 @@ static int8_t CDC_Control_FS(uint8_t cmd, uint8_t *pbuf, uint16_t length) {
   */
 static int8_t CDC_Receive_FS(uint8_t *Buf, uint32_t *Len) {
     /* USER CODE BEGIN 6 */
-    uint32_t len = (*Len < APP_RX_DATA_SIZE) ? *Len : APP_RX_DATA_SIZE;
-    for (uint32_t i = 0; i < len; i++) {
-        RxLineBuf[i] = Buf[i];
-    }
-    RxLineLen = len;
-    RxLineReady = 1;
+    RxRing_Push(Buf, *Len);
 
     USBD_CDC_SetRxBuffer(&h_usb_device_fs, &Buf[0]);
     USBD_CDC_ReceivePacket(&h_usb_device_fs);
@@ -273,24 +283,20 @@ static int8_t CDC_Receive_FS(uint8_t *Buf, uint32_t *Len) {
 
 /**
   * @brief  CDC_Read_FS
-  *         Polled by the application to fetch the most recently received
-  *         USB CDC packet, if one is pending.
-  * @param  Buf: destination buffer, at least APP_RX_DATA_SIZE bytes
-  * @param  Len: set to the number of bytes copied into Buf
-  * @retval 1 if data was copied, 0 if nothing was pending
+  *         Polled by the application to drain bytes received over USB CDC.
+  *         Safe to call with any MaxLen; returns as many bytes as are
+  *         available, up to MaxLen.
+  * @param  Buf: destination buffer
+  * @param  MaxLen: capacity of Buf
+  * @retval Number of bytes copied into Buf (0 if none were pending)
   */
-uint8_t CDC_Read_FS(uint8_t *Buf, uint32_t *Len) {
-    if (!RxLineReady) {
-        return 0;
+uint32_t CDC_Read_FS(uint8_t *Buf, uint32_t MaxLen) {
+    uint32_t count = 0;
+    while ((RxTail != RxHead) && (count < MaxLen)) {
+        Buf[count++] = RxRing[RxTail];
+        RxTail = (RxTail + 1) % CDC_RX_RING_SIZE;
     }
-
-    *Len = RxLineLen;
-    for (uint32_t i = 0; i < RxLineLen; i++) {
-        Buf[i] = RxLineBuf[i];
-    }
-    RxLineReady = 0;
-
-    return 1;
+    return count;
 }
 
 /**

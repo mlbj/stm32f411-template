@@ -21,7 +21,8 @@ int main(void) {
 
     while (1) {
         // Echo example
-        if (CDC_Read_FS(rx_buf, &rx_len)) {
+        rx_len = CDC_Read_FS(rx_buf, sizeof(rx_buf));
+        if (rx_len > 0) {
             CDC_Transmit_FS(rx_buf, (uint16_t)rx_len);
         }
 
