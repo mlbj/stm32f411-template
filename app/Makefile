@@ -6,12 +6,16 @@ BINDIR   = bin
 OBJDIR   = obj
 INCDIR   = include
 COMDIR   = ../common
+TUSBDIR  = $(COMDIR)/tinyusb/src
 
 # CPU
 CPU      = cortex-m4
 
 # Sources
 SRC      = $(wildcard $(SRCDIR)/*.c) $(wildcard $(COMDIR)/src/*.c)
+SRC     += $(wildcard $(TUSBDIR)/*.c) $(wildcard $(TUSBDIR)/common/*.c)
+SRC     += $(wildcard $(TUSBDIR)/device/*.c) $(TUSBDIR)/class/cdc/cdc_device.c
+SRC     += $(wildcard $(TUSBDIR)/portable/synopsys/dwc2/*.c)
 ASM      = $(wildcard $(SRCDIR)/*.s) $(wildcard $(COMDIR)/src/*.s)
 
 # Objects
@@ -19,15 +23,17 @@ OBJ      = $(addprefix $(OBJDIR)/,$(notdir $(SRC:.c=.o)))
 OBJ     += $(addprefix $(OBJDIR)/,$(notdir $(ASM:.s=.o)))
 
 # Includes
-INCLUDE  = -I$(INCDIR) -I$(COMDIR)/include -I$(COMDIR)/cmsis
+INCLUDE  = -I$(INCDIR) -I$(COMDIR)/include -I$(COMDIR)/cmsis -I$(TUSBDIR)
 
 # Linker script
 LSCRIPT  = linker.ld
 
 # Flags
-CFLAGS   = -mcpu=$(CPU) -mthumb -std=c99 -Wall -O0 -g3 -DSTM32F411xE $(INCLUDE)
+CFLAGS   = -mcpu=$(CPU) -mthumb -std=c99 -Wall -O0 -g3 -DSTM32F411xE $(INCLUDE) \
+           -ffunction-sections -fdata-sections -MMD -MP \
+           -mfpu=fpv4-sp-d16 -mfloat-abi=hard
 ASFLAGS  = -mcpu=$(CPU)
-LDFLAGS  = -T$(LSCRIPT) -nostdlib -Wl,--gc-sections
+LDFLAGS  = -T$(LSCRIPT) -Wl,--gc-sections -lc --specs=nosys.specs --specs=nano.specs
 
 # Tools
 CC       = arm-none-eabi-gcc
@@ -59,19 +65,15 @@ $(BIN): $(ELF)
 $(HEX): $(ELF)
 	$(OBJCOPY) -O ihex $< $@
 
-$(OBJDIR)/%.o: $(SRCDIR)/%.c
+vpath %.c $(SRCDIR) $(COMDIR)/src $(TUSBDIR) $(TUSBDIR)/common $(TUSBDIR)/device \
+          $(TUSBDIR)/class/cdc $(TUSBDIR)/portable/synopsys/dwc2
+vpath %.s $(SRCDIR) $(COMDIR)/src
+
+$(OBJDIR)/%.o: %.c
 	@mkdir -p $(OBJDIR)
 	$(CC) $(CFLAGS) -c $< -o $@
 
-$(OBJDIR)/%.o: $(COMDIR)/src/%.c
-	@mkdir -p $(OBJDIR)
-	$(CC) $(CFLAGS) -c $< -o $@
-
-$(OBJDIR)/%.o: $(SRCDIR)/%.s
-	@mkdir -p $(OBJDIR)
-	$(AS) $(ASFLAGS) -o $@ $<
-
-$(OBJDIR)/%.o: $(COMDIR)/src/%.s
+$(OBJDIR)/%.o: %.s
 	@mkdir -p $(OBJDIR)
 	$(AS) $(ASFLAGS) -o $@ $<
 
